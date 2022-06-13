@@ -84,6 +84,27 @@ class MongoRepo:
             order['price']
         )
 
+    
+    def place_stop_loss_buy(self, command):
+        order = self.__create_stop_loss_buy_order(command)
+        self.__update_db_stop_loss_buy(order)
+        return "You have placed a STOPLOSS BUY order for {} {} shares at {} each".format(
+            order['amount'],
+            order['stock_name'],
+            order['price'],
+        )
+
+
+    def place_stop_loss_sell(self, command):
+        order = self.__create_stop_loss_sell_order(command)
+        self.__update_db_stop_loss_sell(order)
+        return "You have placed a STOPLOSS SELL order for {} {} shares at {} each".format(
+            order['amount'],
+            order['stock_name'],
+            order['price'],
+        )
+
+
     def place_lmt_sell(self, command):
         """Place sell at user defined price order
 
@@ -138,6 +159,27 @@ class MongoRepo:
         order['status'] = 'PENDING'
         order['amount'] = "0/{}".format(order['amount'])
         return order
+
+    
+    def __create_stop_loss_buy_order(self, command):
+        order = command['command']
+        order['order_type'] = "BUY"
+        order["price_type"] = "STOPLOSS"
+        order['price'] = float(order['price'][1:])
+        order['status'] = 'PENDING'
+        order['amount'] = "0/{}".format(order['amount'])
+        return order
+
+    
+    def __create_stop_loss_sell_order(self, command):
+        order = command['command']
+        order['order_type'] = "SELL"
+        order["price_type"] = "STOPLOSS"
+        order['price'] = float(order['price'][1:])
+        order['status'] = 'PENDING'
+        order['amount'] = "0/{}".format(order['amount'])
+        return order
+
 
     def __create_sell_mkt_order(self, command):
         """Create SELL MKT dictionary from command
@@ -276,6 +318,7 @@ class MongoRepo:
                 )
                 amount_buy -= amount_bought
                 last_price = possible_transaction["price"]
+                self.__update_stop_loss(order['stock_name'], last_price)
                 possible_transaction = self.collection.find_one(
                     {
                         "stock_name": order["stock_name"],
@@ -303,6 +346,63 @@ class MongoRepo:
                         }
                     }
                 )
+
+
+    def __update_stop_loss(self, stock_name, price):
+        stop_losses_buy = self.collection.find(
+            {
+                "stock_name": stock_name,
+                "order_type": "BUY",
+                "price_type": {
+                    '$in': ["STOPLOSS"]
+                },
+                "price": {
+                    '$gte': price
+                }
+            }
+        )
+        stop_losses_sell = self.collection.find(
+            {
+                "stock_name": stock_name,
+                "order_type": "SELL",
+                "price_type": {
+                    '$in': ["STOPLOSS"]
+                },
+                "price": {
+                    '$lte': price
+                }
+            }
+        )
+        for order in stop_losses_sell:
+            self.collection.update_one(
+                    {
+                        "_id": order['_id']
+                    },
+                    {
+                        "$set": {
+                            "price_type": "LMT",
+                        }
+                    }
+            )
+        for order in stop_losses_buy:
+            self.collection.update_one(
+                    {
+                        "_id": order['_id']
+                    },
+                    {
+                        "$set": {
+                            "price_type": "LMT",
+                        }
+                    }
+            )
+
+
+
+    def __update_db_stop_loss_buy(self, order):
+        self.collection.insert_one(order)
+
+    def __update_db_stop_loss_sell(self, order):
+        self.collection.insert_one(order)
 
     def __has_active_buy_orders(self, order):
         return self.collection.count_documents({'stock_name': order['stock_name'],
@@ -389,6 +489,7 @@ class MongoRepo:
                 )
                 amount_sell -= amount_bought
                 last_price = possible_transaction["price"]
+                self.__update_stop_loss(order['stock_name'], last_price)
                 possible_transaction = self.collection.find_one(
                     {
                         "stock_name": order["stock_name"],
@@ -524,6 +625,7 @@ class MongoRepo:
                     }
                 )
                 amount_buy -= amount_bought
+                self.__update_stop_loss(order['stock_name'], float(possible_transaction['price']))
                 possible_transaction = self.collection.find_one(
                     {
                         "stock_name": order["stock_name"],
@@ -669,6 +771,7 @@ class MongoRepo:
                     }
                 )
                 amount_sell -= amount_bought
+                self.__update_stop_loss(order['stock_name'], float(possible_transaction['price']))
                 possible_transaction = self.collection.find_one(
                     {
                         "stock_name": order["stock_name"],

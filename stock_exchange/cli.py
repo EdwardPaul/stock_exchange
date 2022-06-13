@@ -3,6 +3,7 @@ from stock_exchange.use_cases.request_objects import (
     OrderPlaceMktRequestObject,
     OrderQuoteRequestObject,
     OrderViewRequestObject,
+    OrderStopLossRequestObject
 )
 from stock_exchange.use_cases.order_use_case import (
     OrderPlaceMktBuyUseCase,
@@ -11,6 +12,8 @@ from stock_exchange.use_cases.order_use_case import (
     OrderPlaceLmtSellUseCase,
     OrderQuoteUseCase,
     OrderViewUseCase,
+    OrderStopLossBuyUseCase,
+    OrderStopLossSellUseCase
 )
 
 
@@ -44,6 +47,8 @@ class ConsoleInterface:
             if self.input_list[0] == "QUOTE":
                 self.__place_quote()
                 continue
+            if self.input_list[0] == "STOPLOSS":
+                self.__place_stop_loss()
             if self.input_list[0] == "QUIT":
                 self.repo.db.drop_collection("orders")
                 self.repo.db.drop_collection("history")
@@ -72,6 +77,13 @@ class ConsoleInterface:
         result = place_use_case.process_request(request)
         print(result.value)
 
+    def __place_stop_loss(self):
+        """Perfroms buy use case"""
+        if self.input_list[2] == "BUY":
+            self.__place_stop_loss_buy_order()
+        if self.input_list[2] == "SELL":
+            self.__place_stop_loss_sell_order()
+
     def __place_buy_lmt_order(self):
         """Performs buy at user defined price use case"""
         command = {
@@ -98,6 +110,37 @@ class ConsoleInterface:
         place_use_case = OrderPlaceMktSellUseCase(self.repo)
         result = place_use_case.process_request(request)
         print(result.value)
+
+
+    def __place_stop_loss_buy_order(self):
+        """Performs sell at market price use case"""
+        command = {
+            "command": {
+                "stock_name": self.input_list[1],
+                "price": self.input_list[3],
+                "amount": self.input_list[4],
+            }
+        }
+        request = OrderStopLossRequestObject(command)
+        place_use_case = OrderStopLossBuyUseCase(self.repo)
+        result = place_use_case.process_request(request)
+        print(result.value)
+
+
+    def __place_stop_loss_sell_order(self):
+        """Performs sell at market price use case"""
+        command = {
+            "command": {
+                "stock_name": self.input_list[1],
+                "price": self.input_list[3],
+                "amount": self.input_list[4],
+            }
+        }
+        request = OrderStopLossRequestObject(command)
+        place_use_case = OrderStopLossSellUseCase(self.repo)
+        result = place_use_case.process_request(request)
+        print(result.value)
+
 
     def __place_sell_lmt_order(self):
         """Performs sell at user defined price use case"""

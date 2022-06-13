@@ -106,6 +106,57 @@ class OrderPlaceLmtRequestObject(ValidRequestObject):
         return True
 
 
+class OrderStopLossRequestObject(ValidRequestObject):
+    def __init__(self, command):
+        self.command = command
+
+    
+    @classmethod
+    def from_dict(cls, input_dict):
+        """Generate request from VIEW ORDERS command dictionary
+
+        Arguments:
+            input_dict(dict): VIEW ORDERS command dictionary with command info
+
+        Returns:
+            OrderViewRequestObject: Valid request object iff command is correct
+            InvalidRequestObject: Invalid request iff command is incorrect
+        """
+        invalid_req = InvalidRequestObject()
+
+        if cls.__is_empty(input_dict):
+            invalid_req.add_error('command', 'Empty dict')
+            return invalid_req
+
+        if cls.__is_not_iterable(input_dict):
+            invalid_req.add_error('command', 'Is not iterable')
+            return invalid_req
+
+        if cls.__is_incomplete(input_dict):
+            invalid_req.add_error('command', 'Is incomplete')
+            return invalid_req
+
+        if price_is_negative(input_dict):
+            invalid_req.add_error('command: price', 'Is negative')
+            return invalid_req
+
+        if amount_is_negative(input_dict):
+            invalid_req.add_error('command: amount', 'Is negative')
+            return invalid_req
+
+        return OrderViewRequestObject(command=input_dict['command'])
+
+    
+    def __is_incomplete(input_dict):
+        return not all(k in input_dict['command'] for k in ("stock_name",
+                                                            "price",
+                                                            "amount"))
+
+
+    def __nonzero__(self):
+        return True
+
+
 class OrderViewRequestObject(ValidRequestObject):
     """Request object corresponding to VIEW ORDERS command
 

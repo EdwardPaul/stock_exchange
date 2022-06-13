@@ -46,6 +46,50 @@ class OrderPlaceMktBuyUseCase(UseCase):
         return res.ResponseSuccess(order_place)
 
 
+class OrderStopLossBuyUseCase(UseCase):
+    """Use case performing BUY MKT command
+
+    Arguments:
+        repo(MongoRepo): Repository class object to perform database operations
+    """
+    def __init__(self, repo):
+        self.repo = repo
+
+    def process_request(self, request_object):
+        """Perform database operations corresponding to BUY MKT request object
+
+        Arguments:
+            request_object(OrderPlaceMktRequestObject): Request object corresponding to BUY MKT
+
+        Returns:
+            ResponseSucess: Response handling successful result of the BUY MKT command
+        """
+        order_place = self.repo.place_stop_loss_buy(command=request_object.command)
+        return res.ResponseSuccess(order_place)
+
+
+class OrderStopLossSellUseCase(UseCase):
+    """Use case performing BUY MKT command
+
+    Arguments:
+        repo(MongoRepo): Repository class object to perform database operations
+    """
+    def __init__(self, repo):
+        self.repo = repo
+
+    def process_request(self, request_object):
+        """Perform database operations corresponding to BUY MKT request object
+
+        Arguments:
+            request_object(OrderPlaceMktRequestObject): Request object corresponding to BUY MKT
+
+        Returns:
+            ResponseSucess: Response handling successful result of the BUY MKT command
+        """
+        order_place = self.repo.place_stop_loss_sell(command=request_object.command)
+        return res.ResponseSuccess(order_place)
+
+
 class OrderPlaceMktSellUseCase(UseCase):
     """Use case performing SELL MKT command
 
